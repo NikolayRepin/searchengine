@@ -16,6 +16,7 @@ import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.services.IndexingService;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +34,7 @@ public class IndexingServiceImpl implements IndexingService {
     private final LemmaParser lemmaParser;
     private final IndexParser indexParser;
     private final SitesList sitesList;
+
 
     @Override
     public boolean urlIndexing(String url) {
@@ -73,6 +75,13 @@ public class IndexingServiceImpl implements IndexingService {
         if (isIndexingActive()) {
             log.info("Indexing was stopped");
             executorService.shutdownNow();
+            for (Site site : sitesList.getSites()) {
+                SitePage sitePage = siteRepository.findByUrl(site.getUrl());
+                sitePage.setLastError("Indexing stopped by user");
+                sitePage.setStatus(Status.FAILED);
+                sitePage.setStatusTime(new Date());
+                siteRepository.saveAndFlush(sitePage);
+            }
             return true;
         } else {
             log.info("Indexing was not stopped because it was not started");
@@ -100,4 +109,5 @@ public class IndexingServiceImpl implements IndexingService {
         }
         return false;
     }
+
 }

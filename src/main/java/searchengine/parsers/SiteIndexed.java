@@ -33,6 +33,9 @@ public class SiteIndexed implements Runnable {
     private final String url;
     private final SitesList sitesList;
 
+    private SitePage currentSite;
+
+
     private List<StatisticsPage> getPageDtoList() throws InterruptedException {
         if (!Thread.interrupted()) {
             String urlFormat = url + "/";
@@ -57,6 +60,7 @@ public class SiteIndexed implements Runnable {
             saveToBase(statisticsPageList);
             getLemmasPage();
             indexingWords();
+
         } catch (InterruptedException e) {
             log.error("Indexing stopped - " + url);
             errorSite();
@@ -99,11 +103,6 @@ public class SiteIndexed implements Runnable {
 
     private void deleteDataFromSite() {
         SitePage sitePage = siteRepository.findByUrl(url);
-        sitePage.setStatus(Status.INDEXING);
-        sitePage.setName(getName());
-        sitePage.setStatusTime(new Date());
-        siteRepository.save(sitePage);
-        siteRepository.flush();
         siteRepository.delete(sitePage);
     }
 
@@ -131,13 +130,12 @@ public class SiteIndexed implements Runnable {
     }
 
     private void saveDateSite() {
-        SitePage sitePage = new SitePage();
-        sitePage.setUrl(url);
-        sitePage.setName(getName());
-        sitePage.setStatus(Status.INDEXING);
-        sitePage.setStatusTime(new Date());
-        siteRepository.flush();
-        siteRepository.save(sitePage);
+        currentSite = new SitePage();
+        currentSite.setUrl(url);
+        currentSite.setName(getName());
+        currentSite.setStatus(Status.INDEXING);
+        currentSite.setStatusTime(new Date());
+        siteRepository.saveAndFlush(currentSite);
     }
 
     private String getName() {
@@ -151,11 +149,10 @@ public class SiteIndexed implements Runnable {
     }
 
     private void errorSite() {
-        SitePage sitePage = new SitePage();
-        sitePage.setLastError("Indexing stopped");
-        sitePage.setStatus(Status.FAILED);
-        sitePage.setStatusTime(new Date());
-        siteRepository.save(sitePage);
+        currentSite.setLastError("Indexing stopped");
+        currentSite.setStatus(Status.FAILED);
+        currentSite.setStatusTime(new Date());
+        siteRepository.saveAndFlush(currentSite);
     }
 }
 
